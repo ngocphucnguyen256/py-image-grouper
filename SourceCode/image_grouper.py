@@ -14,8 +14,16 @@ class ImageGrouper:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Image Grouper")
-        self.window.geometry("800x600")  # Larger window
-        self.window.configure(bg='#f0f0f0')  # Light gray background
+        self.window.geometry("800x600")
+        self.window.configure(bg='#f0f0f0')
+        
+        # Supported image formats
+        self.image_formats = {
+            '.jpg', '.jpeg', '.png', '.gif', '.bmp',
+            '.jfif', '.webp', '.tiff', '.ico', '.heic',
+            '.JPG', '.JPEG', '.PNG', '.GIF', '.BMP',
+            '.JFIF', '.WEBP', '.TIFF', '.ICO', '.HEIC'
+        }
         
         self.moved_files = []  # For undo functionality
         self.config_file = "session_config.json"
@@ -322,6 +330,10 @@ class ImageGrouper:
                 return False
         return False
     
+    def _is_image_file(self, filename):
+        """Check if a file is a supported image format"""
+        return any(filename.lower().endswith(fmt.lower()) for fmt in self.image_formats)
+    
     def group_images(self):
         pool = self.pool_path.get()
         horizontal = self.horizontal_path.get()
@@ -335,18 +347,24 @@ class ImageGrouper:
         self.moved_files.clear()
         errors = []
         
-        # Count total files for progress
+        # Get all files with supported image extensions
+        supported_formats = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.jfif', 
+                           '.webp', '.tiff', '.ico', '.heic')
         image_files = [f for f in os.listdir(pool) 
-                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
+                      if f.lower().endswith(supported_formats)]
         total_files = len(image_files)
         
         if total_files == 0:
-            self.msg_queue.put({'type': 'warning', 'message': "No image files found in Pool folder"})
+            formats_msg = ", ".join(supported_formats)
+            self.msg_queue.put({
+                'type': 'warning', 
+                'message': f"No image files found in Pool folder\n\nSupported formats:\n{formats_msg}"
+            })
             self.msg_queue.put({'type': 'done'})
             return
         
         # Process files in batches for better performance
-        batch_size = 10  # Process 10 files before updating UI
+        batch_size = 10
         
         for i, file in enumerate(image_files, 1):
             try:
@@ -354,6 +372,9 @@ class ImageGrouper:
                 img = None
                 try:
                     img = Image.open(img_path)
+                    # Convert RGBA to RGB if needed
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        img = img.convert('RGB')
                     width, height = img.size
                     target_dir = horizontal if width > height else vertical
                     target_path = os.path.join(target_dir, file)
@@ -381,7 +402,7 @@ class ImageGrouper:
         if errors:
             self.msg_queue.put({'type': 'warning', 'message': "\n".join(errors)})
         else:
-            self.msg_queue.put({'type': 'info', 'message': "Images grouped successfully!"})
+            self.msg_queue.put({'type': 'info', 'message': f"Successfully processed {total_files} images!"})
         
         self.msg_queue.put({'type': 'done'})
     

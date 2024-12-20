@@ -1,13 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import os
-spec_root = os.path.abspath(SPECPATH)
-
 block_cipher = None
 
 a = Analysis(
-    [os.path.join(spec_root, 'image_grouper.py')],
-    pathex=[spec_root],
+    ['image_grouper.py'],
+    pathex=[],
     binaries=[],
     datas=[],
     hiddenimports=['PIL', 'PIL._tkinter_finder'],
@@ -34,13 +31,9 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
+    upx=False,
     runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon=os.path.join(spec_root, 'app_icon.ico')
 ) 
